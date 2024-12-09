@@ -33,15 +33,16 @@ ui <- fluidPage(
                selectInput("team", "Select Team:", choices = NULL),
                selectInput("sort_by", "Sort By:", choices = NULL),
                h3("Lineup Data"),
-               DTOutput("lineupTable"),
+               DTOutput("lineupTable"),  # Interactive table with selectable rows
                h3("Player Stats for Selected Lineup"),
-               tableOutput("playerTable"),
-               h5("Stat Definitions"),
-               p("GP - Games Played   Min - Minutes Played   OffRtg - Offensive Rating (points scored per 100 possessions)   DefRtg - Defensive Rating (points allowed per 100 possessions)   NetRtg - Net Rating (Offensive Rating - Defensive Rating)   AST% - Assist Percentage (percentage of teammate field goals assisted while on the court)   AST/TO - Assist to Turnover Ratio   AST Ratio - Assist Ratio (assists per 100 possessions)   OREB% - Offensive Rebound Percentage   DREB% - Defensive Rebound Percentage   REB% - Rebound Percentage   TO Ratio - Turnover Ratio (turnovers per 100 possessions)   eFG% - Effective Field Goal Percentage (accounts for the added value of 3-point shots)   TS% - True Shooting Percentage (measures shooting efficiency considering 2-pointers, 3-pointers, and free throws)   PACE - Pace (number of possessions per 48 minutes)   PIE - Player Impact Estimate (percentage of game events a player is involved in)   PTS - Points   FGM - Field Goals Made   FGA - Field Goals Attempted   FG% - Field Goal Percentage   3PM - Three-Point Field Goals Made   3PA - Three-Point Field Goals Attempted   3P% - Three-Point Field Goal Percentage   FTM - Free Throws Made   FTA - Free Throws Attempted   FT% - Free Throw Percentage   OREB - Offensive Rebounds   DREB - Defensive Rebounds   REB - Total Rebounds   AST - Assists   TOV - Turnovers   STL - Steals   BLK - Blocks   BLKA - Blocked Attempts   PF - Personal Fouls   PFD - Personal Fouls Drawn   +/- - Plus/Minus (team point differential while on the court)")
+               tableOutput("playerTable"),  # Table for displaying player stats
+               tags$p(tags$small("Stat Definitions"))
       ),
       tabPanel("Lineup Builder",
                h3("Build Your Custom NBA Lineup"),
                p("Select 5 total players across positions."),
+               
+               # Layout for positioning the selectors and total metric
                fluidRow(
                  column(6,
                         selectInput("Guard", "Select Guard (PG/SG):", choices = NULL, multiple = TRUE),
@@ -55,14 +56,12 @@ ui <- fluidPage(
                         tableOutput("metricTotal")
                  )
                ),
-               h5("Stat Definitions"),
-               p("GP - Games Played   Min - Minutes Played  OffRtg - Offensive Rating (points scored per 100 possessions)   DefRtg - Defensive Rating (points allowed per 100 possessions)   NetRtg - Net Rating (Offensive Rating - Defensive Rating)   AST% - Assist Percentage (percentage of teammate field goals assisted while on the court)   AST/TO - Assist to Turnover Ratio   AST Ratio - Assist Ratio (assists per 100 possessions)   OREB% - Offensive Rebound Percentage   DREB% - Defensive Rebound Percentage   REB% - Rebound Percentage   TO Ratio - Turnover Ratio (turnovers per 100 possessions)   eFG% - Effective Field Goal Percentage (accounts for the added value of 3-point shots)   TS% - True Shooting Percentage (measures shooting efficiency considering 2-pointers, 3-pointers, and free throws)   PACE - Pace (number of possessions per 48 minutes)   PIE - Player Impact Estimate (percentage of game events a player is involved in)   PTS - Points   FGM - Field Goals Made   FGA - Field Goals Attempted   FG% - Field Goal Percentage   3PM - Three-Point Field Goals Made   3PA - Three-Point Field Goals Attempted   3P% - Three-Point Field Goal Percentage   FTM - Free Throws Made   FTA - Free Throws Attempted   FT% - Free Throw Percentage   OREB - Offensive Rebounds   DREB - Defensive Rebounds   REB - Total Rebounds   AST - Assists   TOV - Turnovers   STL - Steals   BLK - Blocks   BLKA - Blocked Attempts   PF - Personal Fouls   PFD - Personal Fouls Drawn   +/- - Plus/Minus (team point differential while on the court)")
+               tags$p(tags$small("Stat Definitions"))
       ),
       tabPanel("Lineup Composition",
                h3("Radar Chart of Player Stats Percentiles"),
                uiOutput("radarChart"),
-               h5("Stat Definitions"),
-               p("GP - Games Played   Min - Minutes Played   OffRtg - Offensive Rating (points scored per 100 possessions)   DefRtg - Defensive Rating (points allowed per 100 possessions)   NetRtg - Net Rating (Offensive Rating - Defensive Rating)   AST% - Assist Percentage (percentage of teammate field goals assisted while on the court)   AST/TO - Assist to Turnover Ratio   AST Ratio - Assist Ratio (assists per 100 possessions)   OREB% - Offensive Rebound Percentage   DREB% - Defensive Rebound Percentage   REB% - Rebound Percentage   TO Ratio - Turnover Ratio (turnovers per 100 possessions)   eFG% - Effective Field Goal Percentage (accounts for the added value of 3-point shots)   TS% - True Shooting Percentage (measures shooting efficiency considering 2-pointers, 3-pointers, and free throws)   PACE - Pace (number of possessions per 48 minutes)   PIE - Player Impact Estimate (percentage of game events a player is involved in)   PTS - Points   FGM - Field Goals Made   FGA - Field Goals Attempted   FG% - Field Goal Percentage   3PM - Three-Point Field Goals Made   3PA - Three-Point Field Goals Attempted   3P% - Three-Point Field Goal Percentage   FTM - Free Throws Made   FTA - Free Throws Attempted   FT% - Free Throw Percentage   OREB - Offensive Rebounds   DREB - Defensive Rebounds   REB - Total Rebounds   AST - Assists   TOV - Turnovers   STL - Steals   BLK - Blocks   BLKA - Blocked Attempts   PF - Personal Fouls   PFD - Personal Fouls Drawn   +/- - Plus/Minus (team point differential while on the court)")
+               tags$p(tags$small("Stat Definitions"))
       )
     )
   )
@@ -70,6 +69,48 @@ ui <- fluidPage(
 
 # Define server logic
 server <- function(input, output, session) {
+  
+  # Define a list of abbreviations and their descriptions
+  stat_descriptions <- list(
+    PER = "Player Efficiency Rating",
+    OWS = "Offensive Win Shares",
+    DWS = "Defensive Win Shares",
+    WS = "Win Shares",
+    OBPM = "Offensive Box Plus-Minus",
+    DBPM = "Defensive Box Plus-Minus",
+    BPM = "Box Plus-Minus",
+    VORP = "Value Over Replacement Player",
+    Player = "The name of the player",
+    Team = "The team the player is associated with",
+    Age = "The player's age",
+    GP = "Games Played - Number of games the player has participated in",
+    W = "Wins - The number of games won by the player's team",
+    L = "Losses - The number of games lost by the player's team",
+    Min = "Minutes - The total minutes the player has played",
+    PTS = "Points - The total points scored by the player",
+    FGM = "Field Goals Made - The number of field goals made by the player",
+    FGA = "Field Goals Attempted - The number of field goals attempted by the player",
+    `FG%` = "Field Goal Percentage - The percentage of successful field goals made (FGM / FGA)",
+    `3PM` = "Three-Point Field Goals Made - The number of three-point shots made",
+    `3PA` = "Three-Point Field Goals Attempted - The number of three-point shots attempted",
+    `3P%` = "Three-Point Percentage - The percentage of successful three-point shots made (3PM / 3PA)",
+    FTM = "Free Throws Made - The number of free throws made by the player",
+    FTA = "Free Throws Attempted - The number of free throws attempted by the player",
+    `FT%` = "Free Throw Percentage - The percentage of successful free throws made (FTM / FTA)",
+    OREB = "Offensive Rebounds - The number of rebounds grabbed on the offensive end",
+    DREB = "Defensive Rebounds - The number of rebounds grabbed on the defensive end",
+    REB = "Rebounds - The total number of rebounds grabbed by the player (OREB + DREB)",
+    AST = "Assists - The total number of assists by the player",
+    TOV = "Turnovers - The total number of times the player lost possession of the ball",
+    STL = "Steals - The total number of steals by the player",
+    BLK = "Blocks - The total number of shots blocked by the player",
+    PF = "Personal Fouls - The total number of personal fouls committed by the player",
+    FP = "Fantasy Points - A fantasy basketball scoring system based on stats",
+    DD2 = "Double-Double (Points and Rebounds or Assists) - The number of times the player has achieved a double-double",
+    TD3 = "Triple-Double (Points, Rebounds, Assists) - The number of times the player has achieved a triple-double",
+    `+/-` = "Plus/Minus - The point differential when the player is on the court"
+  )
+  
   
   # Read and clean data
   Lineups <- read_excel("Lineups.xlsx")
@@ -80,7 +121,6 @@ server <- function(input, output, session) {
     mutate(Player = stri_trans_general(Player, "Latin-ASCII"))
   Players.custom <- left_join(Players, Advanced, by = c("Player", "Team"))
   
-  # Reshape player names to match names in lineups
   Players <- Players %>%
     mutate(Player = gsub("(^[A-Za-z'\\-])[A-Za-z'\\-]*\\s([A-Za-z]+)", "\\1. \\2", Player))
   
@@ -103,7 +143,6 @@ server <- function(input, output, session) {
     filtered_data <- if (input$team == "All Teams") Lineups else Lineups %>% filter(Team == input$team)
     datatable(filtered_data %>% arrange(desc(!!sym(input$sort_by))) %>% select(Lineups, Team, !!sym(input$sort_by)), selection = "single", options = list(pageLength = 5))
   })
-  
   
   # Render the player stats for the selected lineup
   output$playerTable <- renderTable({
@@ -147,7 +186,6 @@ server <- function(input, output, session) {
     player_stats
   })
   
-  # Lineup Builder
   observeEvent(input$build_lineup, {
     req(input$Guard, input$Forward, input$Center)
     selected_players <- c(input$Guard, input$Forward, input$Center)
@@ -156,22 +194,39 @@ server <- function(input, output, session) {
     selected_player_stats(custom_lineup)
     lineup_source("builder")  # Set source to lineup builder
     
-    # Update the customLineup table using renderDT
+    # Ensure JSON is properly formatted
+    stat_descriptions_json <- jsonlite::toJSON(stat_descriptions, auto_unbox = TRUE)
+    
     output$customLineup <- renderDT({
+      custom_lineup <- selected_player_stats()
+      
+      # Create the datatable with custom tooltips for column headers
       datatable(
         custom_lineup,
         options = list(
           pageLength = 5,         # Display 5 rows per page
-          autoWidth = TRUE,      # Automatically adjust column widths
-          dom = 'tip'            # Show table and pagination controls
+          autoWidth = TRUE,       # Automatically adjust column widths
+          dom = 'tip',            # Show table and pagination controls
+          initComplete = JS(
+            # Adding tooltips to the column headers directly
+            paste0(
+              "function(settings, json) {",
+              "var descriptions = ", stat_descriptions_json, ";",
+              "this.api().columns().header().each(function (col, i) {",
+              "var colName = $(col).text();",
+              "if (descriptions[colName]) {",
+              "$(col).attr('title', descriptions[colName]);",  # Add description to the column header
+              "}",
+              "});",
+              "}"
+            )
+          )
         ),
-        selection = "none",    # No row selection
-        rownames = FALSE       # Hide row names
+        selection = "none",       # No row selection
+        rownames = FALSE          # Hide row names
       )
     })
   })
-  
-  
   
   
   # Show Total Metric for the Selected Metric
@@ -188,7 +243,7 @@ server <- function(input, output, session) {
   
   # Render radar charts for each player in the selected lineup
   output$radarChart <- renderUI({
-    req(selected_player_stats() )  # Ensure data is available
+    req(selected_player_stats())  # Ensure data is available
     
     # Get the selected player stats
     player_stats <- selected_player_stats()
@@ -239,9 +294,9 @@ server <- function(input, output, session) {
         fill = 'toself',
         name = player_percentiles_selected$Player[i],
         mode = 'lines+markers',
-        hoverinfo = 'text',  # Show custom text on hover
+        hoverinfo = 'text',
         hovertext = paste(radar_data$stats, ": ", selected_player_stats()[i, radar_data$stats], " (Percentile: ",
-                          round(player_data, 1), "%)", sep = "")  # Display the stat and percentile on hover
+                          round(player_data, 1), "%)", sep = "")
       ) %>%
         layout(
           polar = list(
@@ -262,31 +317,16 @@ server <- function(input, output, session) {
     num_rows <- ceiling(length(radar_plots) / 3)
     
     # Create the UI layout with 3 radar charts per row
-    radar_ui <- lapply(1:num_rows, function(row_idx) {
-      # Define the starting and ending index for this row's charts
-      start_idx <- (row_idx - 1) * 3 + 1
-      end_idx <- min(row_idx * 3, length(radar_plots))
-      
-      # Create a fluidRow with 3 columns containing the radar charts
-      fluidRow(
-        lapply(start_idx:end_idx, function(chart_idx) {
-          column(width = 4, plotlyOutput(paste0("radarChart_", chart_idx)))
-        })
-      )
+    chart_ui <- lapply(1:num_rows, function(i) {
+      row_start <- (i - 1) * 3 + 1
+      row_end <- min(i * 3, length(radar_plots))
+      div(class = "row", do.call(tagList, radar_plots[row_start:row_end]))
     })
     
-    # Render the radar charts in each slot
-    for (i in seq_along(radar_plots)) {
-      local({
-        idx <- i
-        output[[paste0("radarChart_", idx)]] <- renderPlotly({ radar_plots[[idx]] })
-      })
-    }
-    
-    # Combine the rows into a single UI object
-    do.call(tagList, radar_ui)
+    do.call(tagList, chart_ui)
   })
 }
 
-# Run the application
+# Run the Shiny app
 shinyApp(ui = ui, server = server)
+
