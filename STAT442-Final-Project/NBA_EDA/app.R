@@ -10,137 +10,176 @@ library(scales) # percentile calculations
 library(plotly) # radar chart
 library(shinythemes)  # Themes
 library(shinyWidgets)
+library(GGally)
 
-ui <- navbarPage(
-  title = "NBA Lineups Analysis",
-  theme = shinythemes::shinytheme("cosmo"),  # Sleek theme
-  id = "navbar",
-  
-  # Home Page
-  tabPanel(
-    "Home",
-    fluidPage(
-      div(
-        class = "jumbotron text-center",
-        style = "background: linear-gradient(to right, #0052D4, #65C7F7); color: white; padding: 30px;",
-        h1("NBA Lineups Analysis"),
-        p("Your one-stop platform for exploring and building NBA lineups!")
-      ),
-      fluidRow(
-        column(
-          4,
-          div(
-            class = "card text-center",
-            style = "padding: 20px; background-color: #f7f7f7; border-radius: 10px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);",
-            h3("Analyze Lineups"),
-            p("Dive into performance metrics for your favorite teams."),
-            icon("chart-line", style = "font-size: 40px; color: #0052D4;")
-          )
+ui <- tagList(
+  # Custom CSS to position the image inside the navbar (top-right corner)
+  tags$head(
+    tags$style(HTML("
+      #navbar-logo {
+        position: absolute;
+        top: 5px;
+        right: 20px;
+        height: 40px;
+        z-index: 1000;
+      }
+      .navbar {
+        position: relative;
+      }
+    "))
+  ),
+  # Main Navbar
+  navbarPage(
+    title = div(
+      "NBA Lineups Analysis",
+      # Add the logo inside the title bar
+      tags$img(src = "AppLogo_1.webp", id = "navbar-logo")
+    ),
+    theme = shinythemes::shinytheme("cosmo"),  # Sleek theme
+    id = "navbar",
+    
+    # Home Page
+    tabPanel(
+      "Home",
+      fluidPage(
+        div(
+          class = "jumbotron text-center",
+          style = "background: linear-gradient(to right, #0052D4, #65C7F7); color: white; padding: 30px;",
+          h1("NBA Lineups Analysis"),
+          p("Your one-stop platform for exploring and building NBA lineups!")
         ),
-        column(
-          4,
-          div(
-            class = "card text-center",
-            style = "padding: 20px; background-color: #f7f7f7; border-radius: 10px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);",
-            h3("Build Custom Lineups"),
-            p("Create dream lineups with real NBA data."),
-            icon("basketball-ball", style = "font-size: 40px; color: #65C7F7;")
-          )
-        ),
-        column(
-          4,
-          div(
-            class = "card text-center",
-            style = "padding: 20px; background-color: #f7f7f7; border-radius: 10px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);",
-            h3("Explore Insights"),
-            p("Analyze trends with advanced EDA tools."),
-            icon("chart-bar", style = "font-size: 40px; color: #1C1C1C;")
+        fluidRow(
+          column(
+            4,
+            div(
+              class = "card text-center",
+              style = "padding: 20px; background-color: #f7f7f7; border-radius: 10px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);",
+              h3("Analyze Lineups"),
+              p("Dive into performance metrics for your favorite teams."),
+              icon("chart-line", style = "font-size: 40px; color: #0052D4;")
+            )
+          ),
+          column(
+            4,
+            div(
+              class = "card text-center",
+              style = "padding: 20px; background-color: #f7f7f7; border-radius: 10px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);",
+              h3("Build Custom Lineups"),
+              p("Create dream lineups with real NBA data."),
+              icon("basketball-ball", style = "font-size: 40px; color: #65C7F7;")
+            )
+          ),
+          column(
+            4,
+            div(
+              class = "card text-center",
+              style = "padding: 20px; background-color: #f7f7f7; border-radius: 10px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);",
+              h3("Explore Insights"),
+              p("Analyze trends with advanced EDA tools."),
+              icon("chart-bar", style = "font-size: 40px; color: #1C1C1C;")
+            )
           )
         )
       )
-    )
-  ),
-  
-  # Lineup Analysis
-  tabPanel(
-    "Lineup Analysis",
-    sidebarLayout(
-      sidebarPanel(
-        h4("Filter Lineups"),
-        pickerInput(
-          inputId = "team",label = "Select Team:",choices = NULL, choicesOpt = list(content = NULL)
+    ),
+    
+    # Other tabs remain unchanged
+    tabPanel(
+      "Lineup Analysis",
+      sidebarLayout(
+        sidebarPanel(
+          h4("Filter Lineups"),
+          pickerInput(
+            inputId = "team", label = "Select Team:", choices = NULL, choicesOpt = list(content = NULL)
+          ),
+          pickerInput(
+            inputId = "sort_by", label = "Sort By:", choices = NULL, choicesOpt = list(content = NULL)
+          ),
+          actionButton("analyze", "Analyze")
         ),
-        pickerInput(
-          inputId = "sort_by",label = "Sort By:",choices = NULL, choicesOpt = list(content = NULL)
-        ),
-        actionButton("analyze", "Analyze")
-      ),
-      mainPanel(
-        h3("Lineup Data"),
-        DTOutput("lineupTable"),
-        br(),
-        h4("Player Stats"),
-        DTOutput("playerTable")
+        mainPanel(
+          h3("Lineup Data"),
+          DTOutput("lineupTable"),
+          br(),
+          h4("Player Stats"),
+          DTOutput("playerTable")
+        )
       )
+    ),
+    tabPanel(
+      "Lineup Builder",
+      fluidPage(
+        h3("Select Players"),
+        selectInput("Guard", "Select Guards (PG/SG):", choices = NULL, multiple = TRUE),
+        selectInput("Forward", "Select Forwards (SF/PF):", choices = NULL, multiple = TRUE),
+        selectInput("Center", "Select Centers (C):", choices = NULL, multiple = TRUE),
+        actionButton("build_lineup", "Build Lineup"),
+        actionButton("reset_lineup", "Reset Lineup", icon = icon("refresh")),
+        br(),
+        h4("Custom Lineup Data"),
+        DTOutput("customLineup")
+      )
+    ),
+    tabPanel(
+      "Lineup Composition",
+      h3("Radar Chart of Player Stats Percentiles"),
+      uiOutput("radarChart"),
+      tags$p(tags$small("Stat Definitions"))
+    ),
+    tabPanel(
+      "Lineup Overall",
+      h3("How good is this lineup?"),
+      selectInput("metric", "Select Metric:", choices = c("PER", "OWS", "DWS", "WS", "OBPM", "DBPM", "BPM", "VORP")),
+      textOutput("metricDescription"),
+      tableOutput("metricTotal"),
+      plotlyOutput("lineup")
+    ),
+  
+    tabPanel(
+      "EDA",
+      
+      # Section for basic EDA Plots
+      uiOutput("basic_eda_plots"),
+      
+      # Scatter plot comparison: +/- vs NetRtg
+      plotlyOutput("scatter_plot_plus_minus_vs_netrtg"),
+      
+      # Boxplot comparison of +/- by Team
+      plotlyOutput("boxplot_plus_minus_by_team"),
+      
+      # Stacked Bar Plot: Position Distribution by Team
+      plotlyOutput("stacked_bar_pie_by_team"),
+      
+      # Violin Plot: +/- Distribution across Teams
+      plotlyOutput("violin_plot_plus_minus_by_team"),
+      
+      # Heatmap: Top Performers by NetRtg
+      plotlyOutput("heatmap_top_performers"),
+      
+      # CDF of +/- distribution
+      plotlyOutput("cdf_plus_minus"),
+      
+      # Linear Model Summary Output
+      verbatimTextOutput("linear_model_summary"),
+      
+      # Initial diagnostic plots
+      plotOutput("diagnostic_plots_initial"),
+      
+      # Updated Linear Model Summary
+      verbatimTextOutput("linear_model_updated_summary"),
+      
+      # Updated diagnostic plots
+      plotOutput("diagnostic_plots_updated")
+    ),
+    
+    tags$footer(
+      style = "text-align: center; padding: 10px; background: #f1f1f1; border-top: 1px solid #ccc; color: #555;",
+      "© 2024 NBA Lineups Analysis | Drew Marchant and Joseph Uttecht"
     )
-  ),
-  
-  # Lineup Builder
-  tabPanel(
-    "Lineup Builder",
-    fluidPage(
-      h3("Select Players"),
-      selectInput("Guard", "Select Guards (PG/SG):", choices = NULL, multiple = TRUE),
-      selectInput("Forward", "Select Forwards (SF/PF):", choices = NULL, multiple = TRUE),
-      selectInput("Center", "Select Centers (C):", choices = NULL, multiple = TRUE),
-      actionButton("build_lineup", "Build Lineup"),
-      actionButton("reset_lineup", "Reset Lineup", icon = icon("refresh")),
-      br(),
-      h4("Custom Lineup Data"),
-      DTOutput("customLineup")
-    )
-  ),
-  
-  tabPanel("Lineup Composition",
-           h3("Radar Chart of Player Stats Percentiles"),
-           uiOutput("radarChart"),  # This renders the radar chart output
-           tags$p(tags$small("Stat Definitions"))
-  ),
-  
-  tabPanel("Lineup Overall",
-           h3("How good is this lineup?"),
-           selectInput("metric", "Select Metric:", choices = c("PER", "OWS", "DWS", "WS", "OBPM", "DBPM", "BPM", "VORP")),
-           textOutput("metricDescription"),  # Added textOutput for the metric description
-           tableOutput("metricTotal"),
-           plotlyOutput("lineup")
-  ),
-  
-  tabPanel("EDA",
-           # Basic EDA Plots
-           uiOutput("basic_eda_plots"),  # Renders the basic EDA plots
-           
-           # Scatter Plot
-           plotlyOutput("scatter_plot"),
-           
-           # Linear Model Summary (Initial)
-           verbatimTextOutput("linear_model_summary"),
-           
-           # Diagnostic Plots for Initial Model
-           plotOutput("diagnostic_plots_initial"),
-           
-           # Linear Model Summary (Updated)
-           verbatimTextOutput("linear_model_updated_summary"),
-           
-           # Diagnostic Plots for Updated Model
-           plotOutput("diagnostic_plots_updated")
-  ),
-  
-  # Footer
-  tags$footer(
-    style = "text-align: center; padding: 10px; background: #f1f1f1; border-top: 1px solid #ccc; color: #555;",
-    "© 2024 NBA Lineups Analysis | Drew Marchant and Joseph Uttecht"
   )
 )
+
+
 
 
 server <- function(input, output, session) {
@@ -277,45 +316,18 @@ server <- function(input, output, session) {
     )
   })
   
-  # EDA Summary Table
-  output$eda_summary <- renderTable({
-    req(Players)  # Ensure Players is available before rendering the summary
-    summary(Players)  # Show a summary of the dataset
-  })
-  
-  # Basic EDA Plots
+  # EDA - Basic Plots
   output$basic_eda_plots <- renderUI({
     tagList(
-      # Histogram for +/- column
-      plotOutput("histogram_plus_minus"),
-      br(),
-      
-      # Boxplot for PIE column
-      plotOutput("boxplot_pie"),
-      br(),
-      
-      # Correlation plot of numeric variables
-      plotOutput("correlation_plot")
-    )
-  })
-  
-  # Basic EDA Plots with Plotly
-  output$basic_eda_plots <- renderUI({
-    tagList(
-      # Plotly Histogram for +/- column
       plotlyOutput("histogram_plus_minus"),
       br(),
-      
-      # Plotly Boxplot for PIE column
-      plotlyOutput("boxplot_pie"),
+      plotlyOutput("correlation_plot"),
       br(),
-      
-      # Plotly Correlation plot of numeric variables
-      plotlyOutput("correlation_plot")
+      plotlyOutput("scatter_plot_plus_minus_vs_pie")
     )
   })
   
-  # Plotly Histogram of +/- 
+  # Histogram for +/- (this looks correct)
   output$histogram_plus_minus <- renderPlotly({
     p <- ggplot(Lineups, aes(x = `+/-`)) +
       geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
@@ -325,23 +337,11 @@ server <- function(input, output, session) {
     ggplotly(p)
   })
   
-  # Plotly Boxplot for PIE
-  output$boxplot_pie <- renderPlotly({
-    p <- ggplot(Lineups, aes(y = PIE)) +
-      geom_boxplot(fill = "green", color = "black", alpha = 0.7) +
-      labs(title = "Boxplot of PIE", y = "PIE") +
-      theme_minimal()
-    
-    ggplotly(p)
-  })
-  
-  # Plotly Correlation Plot for Numeric Variables
+  # Correlation Plot (this should be correct)
   output$correlation_plot <- renderPlotly({
-    # Select numeric variables only for correlation
     numeric_vars <- Lineups %>% select_if(is.numeric)
     corr_matrix <- cor(numeric_vars, use = "complete.obs")
     
-    # Create the correlation plot
     p <- plot_ly(
       z = corr_matrix,
       x = colnames(corr_matrix),
@@ -357,8 +357,8 @@ server <- function(input, output, session) {
     p
   })
   
-  # Plotly Scatter Plot Output
-  output$scatter_plot <- renderPlotly({
+  # Scatter Plot: +/- vs PIE
+  output$scatter_plot_plus_minus_vs_pie <- renderPlotly({
     p <- ggplot(Lineups, aes(
       x = `+/-`, 
       y = PIE, 
@@ -368,56 +368,147 @@ server <- function(input, output, session) {
       labs(
         title = "Correlation between +/- and PIE", 
         x = "Plus Minus", 
-        y = "PIE"
+        y = "Player Impact Estimate (PIE)"
       ) +
       theme_minimal()
     
     ggplotly(p, tooltip = "text")
   })
   
-  # Linear Model Summary Output with Diagnostic Plots
+  # Scatter Plot: +/- vs NetRtg
+  output$scatter_plot_plus_minus_vs_netrtg <- renderPlotly({
+    p <- ggplot(Lineups, aes(
+      x = `+/-`, 
+      y = NetRtg, 
+      text = paste("Lineup:", Lineups, "<br>Team:", Team, "<br>+/-:", `+/-`, "<br>NetRtg:", NetRtg)
+    )) +
+      geom_point() +
+      labs(
+        title = "Correlation between +/- and NetRtg", 
+        x = "Plus Minus", 
+        y = "Net Rating"
+      ) +
+      theme_minimal()
+    
+    ggplotly(p, tooltip = "text")
+  })
+  
+  # Boxplot: +/- by Team
+  output$boxplot_plus_minus_by_team <- renderPlotly({
+    p <- ggplot(Lineups, aes(x = Team, y = `+/-`, color = Team)) +
+      geom_boxplot() +
+      labs(title = "Boxplot of +/- by Team", x = "Team", y = "+/-") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    
+    ggplotly(p)
+  })
+  
+  # Stacked Bar Plot: PIE Ranges by Team with Reversed Order
+  output$stacked_bar_pie_by_team <- renderPlotly({
+    # Define PIE ranges as per the requested intervals
+    Lineups$PIE_range <- cut(Lineups$PIE, breaks = c(-Inf, 30, 40, 50, 60,Inf), 
+                             labels = c("Less than 30", "30-39", "40-49", "50-59", "60+"))
+    
+    # Reverse the order of the PIE_range factor levels
+    Lineups$PIE_range <- factor(Lineups$PIE_range, levels = c("Less than 30", "30-39", "40-49", "50-59", "60+"))
+    
+    # Count players by PIE range and team
+    pie_team_counts <- Lineups %>%
+      group_by(Team, PIE_range) %>%
+      summarise(Count = n()) %>%
+      ungroup()
+    
+    # Create stacked bar plot with x-axis as teams
+    p <- ggplot(pie_team_counts, aes(x = Team, y = Count, fill = PIE_range)) +
+      geom_bar(stat = "identity") +
+      labs(title = "Stacked Bar Plot of PIE Ranges by Team", 
+           x = "Team", y = "Count of Players") +
+      theme_minimal() +
+      theme(legend.title = element_blank()) +
+      scale_fill_brewer(palette = "Set3")
+    
+    ggplotly(p)
+  })
+  
+  
+  
+  # Violin Plot: +/- Distribution across Teams
+  output$violin_plot_plus_minus_by_team <- renderPlotly({
+    p <- ggplot(Lineups, aes(x = Team, y = `+/-`, fill = Team)) +
+      geom_violin(trim = FALSE) +
+      labs(title = "Violin Plot of +/- by Team", x = "Team", y = "+/-") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    
+    ggplotly(p)
+  })
+  
+  # Heatmap: Top Performers by PER
+  output$heatmap_top_performers <- renderPlotly({
+    top_performers <- Advanced %>%
+      group_by(Team) %>%
+      top_n(5, PER) %>%
+      ungroup()
+    
+    p <- plot_ly(
+      data = top_performers,
+      x = ~Player, y = ~Team, z = ~PER, 
+      type = "heatmap",
+      colors = colorRamp(c("blue", "white", "red"))
+    ) %>% layout(
+      title = "Top Performers (by PER) Heatmap",
+      xaxis = list(title = "Player"),
+      yaxis = list(title = "Team")
+    )
+    
+    p
+  })
+  
+  # CDF of +/- Distribution
+  output$cdf_plus_minus <- renderPlotly({
+    p <- ggplot(Lineups, aes(x = `+/-`)) +
+      stat_ecdf(geom = "step", aes(color = Team)) +
+      labs(title = "CDF of +/- by Team", x = "+/-", y = "Cumulative Probability") +
+      theme_minimal()
+    
+    ggplotly(p)
+  })
+  
+  # Linear Model Summary
   output$linear_model_summary <- renderPrint({
-    # Initial Linear Model
     linear_model <- lm(`+/-` ~ . - Lineups - Team - Min, data = Lineups)
     cat("Initial Linear Model Summary:\n")
     print(summary(linear_model))
-    
-    # Check for Aliased Coefficients
     alias_info <- alias(linear_model)
     cat("\nAliased coefficients:\n")
     print(alias_info)
   })
   
+  # Diagnostic Plots for Initial Model
   output$diagnostic_plots_initial <- renderPlot({
-    # Initial Linear Model
     linear_model <- lm(`+/-` ~ . - Lineups - Team - Min, data = Lineups)
-    
-    # Diagnostic Plots for Initial Model
-    par(mfrow = c(2, 2))  # Set up a 2x2 plot grid for multiple plots
+    par(mfrow = c(2, 2))
     plot(linear_model)
-    
-    # Reset plot layout to default after plotting
-    par(mfrow = c(1, 1))  # Reset the layout to 1 plot per page
+    par(mfrow = c(1, 1)) 
   })
   
+  # Updated Linear Model Summary
   output$linear_model_updated_summary <- renderPrint({
-    # Updated Linear Model
     linear_model_updated <- lm(`+/-` ~ . - Lineups - Team - REB - FTM - Min - FGM - `3PM` - NetRtg - `AST/TO` - `AST%` - `REB%`, data = Lineups)
     cat("\nUpdated Linear Model Summary:\n")
     print(summary(linear_model_updated))
   })
   
+  # Diagnostic Plots for Updated Model
   output$diagnostic_plots_updated <- renderPlot({
-    # Updated Linear Model
     linear_model_updated <- lm(`+/-` ~ . - Lineups - Team - REB - FTM - Min - FGM - `3PM` - NetRtg - `AST/TO` - `AST%` - `REB%`, data = Lineups)
-    
-    # Diagnostic Plots for Updated Model
-    par(mfrow = c(2, 2))  # Set up a 2x2 plot grid for multiple plots
+    par(mfrow = c(2, 2))
     plot(linear_model_updated)
-    
-    # Reset plot layout to default after plotting
-    par(mfrow = c(1, 1))  # Reset the layout to 1 plot per page
+    par(mfrow = c(1, 1)) 
   })
+  
+  
   
   # Lineup Builder - Custom Lineup
   observeEvent(input$build_lineup, {
